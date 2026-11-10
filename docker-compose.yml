@@ -1,0 +1,85 @@
+# Local stack: service + PostgreSQL + Kafka + Redis + Keycloak (OAuth2/JWT) + Jaeger (OTLP) + Prometheus + Grafana
+name: cobol-modernization
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: customers
+      POSTGRES_USER: customer
+      POSTGRES_PASSWORD: customer
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U customer -d customers"]
+      interval: 5s
+      retries: 10
+
+  kafka:
+    image: apache/kafka:3.8.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,HOST://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    ports: ["29092:29092"]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    volumes:
+      - ./deploy/keycloak/mainframe-realm.json:/opt/keycloak/data/import/mainframe-realm.json:ro
+    ports: ["8180:8080"]
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    ports: ["16686:16686", "4318:4318"]
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./deploy/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./deploy/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3000:3000"]
+
+  customer-update-service:
+    build: ./customer-update-service
+    depends_on:
+      postgres: {condition: service_healthy}
+      kafka: {condition: service_started}
+      redis: {condition: service_started}
+      keycloak: {condition: service_started}
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_URL: jdbc:postgresql://postgres:5432/customers
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_HOST: redis
+      JWT_JWK_SET_URI: http://keycloak:8080/realms/mainframe/protocol/openid-connect/certs
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
+      CUSTOMER_BATCH_ENABLED: "true"
+      CUSTOMER_BATCH_CRON: "0 */5 * * * *"
+    volumes:
+      - ./legacy/data:/data/custtxn
+    ports: ["8080:8080"]

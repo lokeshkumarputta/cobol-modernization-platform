@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: customer-update
+    folder: Mainframe Modernization
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

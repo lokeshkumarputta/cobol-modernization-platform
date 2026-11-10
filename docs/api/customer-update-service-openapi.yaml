@@ -1,0 +1,324 @@
+openapi: 3.1.0
+info:
+  title: Customer Update Service
+  description: REST replacement for mainframe batch program CUSTUPD (CUSTOMER_UPDATE.cbl).
+    Business rule violations are returned as RFC 7807 problems with ruleId/errorCode.
+  version: v1
+servers:
+- url: http://localhost
+  description: Generated server url
+security:
+- bearer-jwt: []
+tags:
+- name: Customers
+  description: "Customer maintenance (former CUSTUPD transactions U, S, L)"
+paths:
+  /api/v1/customers/{customerId}/status:
+    put:
+      tags:
+      - Customers
+      summary: Change customer status (TXN-CODE 'S')
+      operationId: changeStatus
+      parameters:
+      - name: customerId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusChangeRequest"
+        required: true
+      responses:
+        "400":
+          description: Invalid request (BR001/BR002 or bean validation)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "404":
+          description: Customer not found (BR003)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "409":
+          description: Version conflict (BR004)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "422":
+          description: Business rule violation (BR005-BR018)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+  /api/v1/customers/{customerId}/credit-limit:
+    put:
+      tags:
+      - Customers
+      summary: Change credit limit (TXN-CODE 'L')
+      operationId: changeCreditLimit
+      parameters:
+      - name: customerId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreditLimitChangeRequest"
+        required: true
+      responses:
+        "400":
+          description: Invalid request (BR001/BR002 or bean validation)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "404":
+          description: Customer not found (BR003)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "409":
+          description: Version conflict (BR004)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "422":
+          description: Business rule violation (BR005-BR018)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+  /api/v1/customers/{customerId}/contact:
+    put:
+      tags:
+      - Customers
+      summary: Update contact details and address (TXN-CODE 'U')
+      operationId: updateContact
+      parameters:
+      - name: customerId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactUpdateRequest"
+        required: true
+      responses:
+        "400":
+          description: Invalid request (BR001/BR002 or bean validation)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "404":
+          description: Customer not found (BR003)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "409":
+          description: Version conflict (BR004)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "422":
+          description: Business rule violation (BR005-BR018)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+  /api/v1/customers/{customerId}:
+    get:
+      tags:
+      - Customers
+      summary: Get a customer
+      operationId: getCustomer
+      parameters:
+      - name: customerId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "400":
+          description: Invalid request (BR001/BR002 or bean validation)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "404":
+          description: Customer not found (BR003)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "409":
+          description: Version conflict (BR004)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "422":
+          description: Business rule violation (BR005-BR018)
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+components:
+  schemas:
+    StatusChangeRequest:
+      type: object
+      properties:
+        expectedVersion:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - INACTIVE
+          - SUSPENDED
+          - CLOSED
+          example: INACTIVE
+          minLength: 1
+      required:
+      - expectedVersion
+      - status
+    AddressDto:
+      type: object
+      properties:
+        line1:
+          type: string
+          maxLength: 40
+          minLength: 0
+        line2:
+          type: string
+          maxLength: 40
+          minLength: 0
+        city:
+          type: string
+          maxLength: 30
+          minLength: 0
+        state:
+          type: string
+          maxLength: 2
+          minLength: 0
+        zip:
+          type: string
+          maxLength: 10
+          minLength: 0
+        country:
+          type: string
+          maxLength: 3
+          minLength: 0
+    CustomerDto:
+      type: object
+      properties:
+        customerId:
+          type: integer
+          format: int64
+        firstName:
+          type: string
+        lastName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          $ref: "#/components/schemas/AddressDto"
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - INACTIVE
+          - SUSPENDED
+          - CLOSED
+        type:
+          type: string
+          enum:
+          - INDIVIDUAL
+          - BUSINESS
+        creditLimit:
+          type: number
+        accountBalance:
+          type: number
+        riskScore:
+          type: integer
+          format: int32
+        lastUpdatedAt:
+          type: string
+          format: date-time
+        lastUpdatedBy:
+          type: string
+        version:
+          type: integer
+          format: int64
+    CreditLimitChangeRequest:
+      type: object
+      properties:
+        expectedVersion:
+          type: integer
+          format: int64
+        newCreditLimit:
+          type: number
+          example: 7500.0
+          minimum: 0.00
+      required:
+      - expectedVersion
+      - newCreditLimit
+    ContactUpdateRequest:
+      type: object
+      properties:
+        expectedVersion:
+          type: integer
+          format: int64
+          description: "Version last read by the client (optimistic lock, BR004)"
+          example: 0
+        firstName:
+          type: string
+          maxLength: 30
+          minLength: 0
+        lastName:
+          type: string
+          maxLength: 30
+          minLength: 0
+        email:
+          type: string
+          maxLength: 60
+          minLength: 0
+        phone:
+          type: string
+          maxLength: 15
+          minLength: 0
+        address:
+          $ref: "#/components/schemas/AddressDto"
+      required:
+      - expectedVersion
+  securitySchemes:
+    bearer-jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,67 @@
+# Replaces the nightly CUSTUPD JCL step: a single replica runs the scheduled file job (02:00 daily).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-update-batch
+  namespace: customer
+  labels:
+    app.kubernetes.io/name: customer-update-batch
+    app.kubernetes.io/part-of: cobol-modernization-platform
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: customer-update-batch
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: customer-update-batch
+    spec:
+      serviceAccountName: customer-update-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: app
+          image: ghcr.io/lokeshkumarputta/customer-update-service:1.0.0
+          envFrom:
+            - configMapRef: {name: customer-update-service}
+            - secretRef: {name: customer-update-service}
+          env:
+            - {name: CUSTOMER_BATCH_ENABLED, value: "true"}
+            - {name: CUSTOMER_BATCH_CRON, value: "0 0 2 * * *"}
+          ports:
+            - {name: http, containerPort: 8080}
+          resources:
+            requests: {cpu: 250m, memory: 512Mi}
+            limits: {memory: 1Gi}
+          readinessProbe:
+            httpGet: {path: /actuator/health/readiness, port: http}
+          livenessProbe:
+            httpGet: {path: /actuator/health/liveness, port: http}
+            initialDelaySeconds: 60
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: custtxn, mountPath: /data/custtxn}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: custtxn
+          persistentVolumeClaim: {claimName: custtxn-inbound}
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: custtxn-inbound
+  namespace: customer
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests: {storage: 5Gi}

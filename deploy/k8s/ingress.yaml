@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: customer-update-service
+  namespace: customer
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: customers.example.com
+      http:
+        paths:
+          - path: /api/v1/customers
+            pathType: Prefix
+            backend:
+              service:
+                name: customer-update-service
+                port: {name: http}

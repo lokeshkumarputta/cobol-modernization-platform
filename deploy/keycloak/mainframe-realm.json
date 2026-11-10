@@ -1,0 +1,56 @@
+{
+  "realm": "mainframe",
+  "enabled": true,
+  "displayName": "Mainframe (LOCAL DEV ONLY - demo users)",
+  "roles": {
+    "realm": [
+      {"name": "CUSTOMER_READ"},
+      {"name": "CUSTOMER_WRITE"}
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "customer-api",
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "realm-roles-as-roles-claim",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "reader",
+      "enabled": true,
+      "email": "reader@example.com",
+      "firstName": "Read",
+      "lastName": "Only",
+      "emailVerified": true,
+      "credentials": [{"type": "password", "value": "reader", "temporary": false}],
+      "realmRoles": ["CUSTOMER_READ"]
+    },
+    {
+      "username": "writer",
+      "enabled": true,
+      "email": "writer@example.com",
+      "firstName": "Ops",
+      "lastName": "Writer",
+      "emailVerified": true,
+      "credentials": [{"type": "password", "value": "writer", "temporary": false}],
+      "realmRoles": ["CUSTOMER_READ", "CUSTOMER_WRITE"]
+    }
+  ]
+}
