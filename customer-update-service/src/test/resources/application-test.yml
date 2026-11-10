@@ -1,0 +1,6 @@
+management:
+  tracing:
+    enabled: false
+logging:
+  level:
+    org.apache.kafka: WARN
