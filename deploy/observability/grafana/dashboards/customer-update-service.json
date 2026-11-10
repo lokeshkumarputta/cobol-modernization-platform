@@ -1,0 +1,45 @@
+{
+  "uid": "customer-update-service",
+  "title": "Customer Update Service (CUSTUPD)",
+  "schemaVersion": 39,
+  "time": {"from": "now-6h", "to": "now"},
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "timeseries", "title": "Transactions/sec by type & outcome",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (txn, outcome) (rate(customer_update_transactions_total[5m]))", "legendFormat": "{{txn}} {{outcome}}"}]
+    },
+    {
+      "type": "timeseries", "title": "Rejects by business rule",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (rule) (rate(customer_update_transactions_total{outcome=\"rejected\"}[5m]))", "legendFormat": "{{rule}}"}]
+    },
+    {
+      "type": "timeseries", "title": "HTTP p95 latency (s)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le, uri) (rate(http_server_requests_seconds_bucket{uri=~\"/api/.*\"}[5m])))", "legendFormat": "{{uri}}"}]
+    },
+    {
+      "type": "timeseries", "title": "HTTP status codes",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (status) (rate(http_server_requests_seconds_count{uri=~\"/api/.*\"}[5m]))", "legendFormat": "{{status}}"}]
+    },
+    {
+      "type": "timeseries", "title": "Hikari active connections",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "hikaricp_connections_active", "legendFormat": "{{pool}}"}]
+    },
+    {
+      "type": "timeseries", "title": "JVM heap used (bytes)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (instance) (jvm_memory_used_bytes{area=\"heap\"})", "legendFormat": "{{instance}}"}]
+    }
+  ]
+}

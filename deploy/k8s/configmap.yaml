@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: customer-update-service
+  namespace: customer
+data:
+  DB_URL: jdbc:postgresql://postgres.data.svc.cluster.local:5432/customers
+  KAFKA_BOOTSTRAP_SERVERS: kafka.messaging.svc.cluster.local:9092
+  REDIS_HOST: redis.data.svc.cluster.local
+  JWT_JWK_SET_URI: https://idp.example.com/realms/mainframe/protocol/openid-connect/certs
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector.observability.svc.cluster.local:4318/v1/traces
+  TRACING_SAMPLING_PROBABILITY: "0.1"
+  CUSTOMER_EVENTS_TOPIC: customer.updated.v1
+  CUSTOMER_EVENTS_REPLICAS: "3"
+  CUSTOMER_BATCH_ENABLED: "false"
